@@ -1,53 +1,40 @@
-from flask import Flask, request, render_template, jsonify
 import os
-import Pyro4
+from flask import Flask, request, jsonify
+from jnius import autoclass
 
 app = Flask(__name__)
-
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-
-@Pyro4.expose
-class RMIServerClient:
-    def __init__(self):
-
-        self.rmi_interface = Pyro4.Proxy("PYRONAME:RMIInterface@localhost:1099")
-    
-    def process_file(self, file_path):
-        try:
-
-            result = self.rmi_interface.processFile(file_path)
-            return result
-        except Exception as e:
-            return f"Error en el procesamiento del archivo: {str(e)}"
-
-
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
+# Configuración de la conexión con el servidor RMI en Java
+System = autoclass('java.lang.System')
+System.setProperty('java.rmi.server.hostname', 'localhost')  # Cambia 'localhost' si tu servidor está en otra máquina
+RMIInterface = autoclass('java.rmi.Naming')
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
-        return jsonify({"error": "No se ha enviado ningún archivo."}), 400
+        return jsonify({"error": "No file provided"}), 400
 
     file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No se ha seleccionado ningún archivo."}), 400
+    if not file.filename.endswith('.java'):
+        return jsonify({"error": "Only .java files are allowed"}), 400
 
+    # Guardar el archivo
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
     file.save(file_path)
 
+    try:
+        # Conectar al servidor RMI
+        rmi_server = RMIInterface.lookup("//localhost/RMIInterface")  # Cambia 'localhost' por la IP del servidor Java
 
-    rmi_client = RMIServerClient()
+        # Llamar al método remoto 'processFile'
+        result = rmi_server.processFile(file_path)
+        return jsonify({"result": result})
 
-    result = rmi_client.process_file(file_path)
-
-    return jsonify({"result": result})
+    except Exception as e:
+        return jsonify({"error": f"Error connecting to RMI server: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
