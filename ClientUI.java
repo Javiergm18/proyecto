@@ -58,11 +58,11 @@ public class ClientUI extends JFrame {
     
     private void processFile(String filePath) {
         try {
-            // Conecta con el servidor RMI
+
             Registry registry = LocateRegistry.getRegistry("localhost", 1099);
             RMIInterface rmi = (RMIInterface) registry.lookup("RMIInterface");
             
-            // Llama al método remoto para procesar el archivo
+
             String result = rmi.processFile(filePath);
             resultArea.setText(result);
         } catch (Exception ex) {
