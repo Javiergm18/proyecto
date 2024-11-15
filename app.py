@@ -6,10 +6,8 @@ app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-# Configuración de la conexión con el servidor RMI en Java
 System = autoclass('java.lang.System')
-System.setProperty('java.rmi.server.hostname', 'localhost')  # Cambia 'localhost' si tu servidor está en otra máquina
+System.setProperty('java.rmi.server.hostname', 'localhost') 
 RMIInterface = autoclass('java.rmi.Naming')
 
 @app.route('/upload', methods=['POST'])
@@ -27,7 +25,7 @@ def upload_file():
 
     try:
         # Conectar al servidor RMI
-        rmi_server = RMIInterface.lookup("//localhost/RMIInterface")  # Cambia 'localhost' por la IP del servidor Java
+        rmi_server = RMIInterface.lookup("//localhost/RMIInterface") 
 
         # Llamar al método remoto 'processFile'
         result = rmi_server.processFile(file_path)
